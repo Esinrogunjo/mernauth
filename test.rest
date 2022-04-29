@@ -3,6 +3,16 @@ Content-Type: application/json
 
 {
     "name":"bolake",
-    "email":"agastech@gmail.com",
+    "email":"admin@gmail.com",
     "password":"1234567890"
+}
+
+###
+POST http://localhost:5000/api/login
+Content-Type: application/json
+
+{
+    "email":"admin@gmail.com",
+    "password":"1234567890"
+
 }
