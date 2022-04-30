@@ -16,3 +16,7 @@ Content-Type: application/json
     "password":"1234567890"
 
 }
+
+###
+GET http://localhost:5000/api/user
+Content-Type:application/json
