@@ -1,6 +1,7 @@
 const User = require("../model/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { json } = require("express");
 const JWT_SECET_KEY = "myseckey123";
 
 //stroing cookie in the http only is very secure using cookie-paser
@@ -51,11 +52,17 @@ const login = async (req, res, next) => {
     return res.status(400).json({ message: "invalid email or password" });
   }
   const token = jwt.sign({ id: existingUser._id }, JWT_SECET_KEY, {
-    expiresIn: "1hr",
+    expiresIn: "35s",
   });
+
+  console.log(`generated token = \n ${token}`);
+
+  if (req.cookies[`${existingUser._id}`]) {
+    req.cookies[`${existingUser._id}`] = "";
+  }
   res.cookie(String(existingUser._id), token, {
     path: "/",
-    expires: new Date(Date.now() + 1000 * 60),
+    expires: new Date(Date.now() + 1000 * 30),
     httpOnly: true,
     sameSite: "lax",
   });
@@ -102,9 +109,44 @@ const getUser = async (req, res, next) => {
   return res.status(200).json({ message: user });
 };
 
+const refreshToken = (req, res, next) => {
+  const cookies = req.headers.cookie;
+  const prevToken = cookies.split("=")[1];
+  if (!prevToken) {
+    return res.status(400), json({ message: "Could not verify token " });
+  }
+
+  jwt.verify(String(prevToken), JWT_SECET_KEY, (error, user) => {
+    if (error) {
+      console.log(error);
+      return res.status(403).json({ message: "Authentication failed", error });
+    }
+
+    res.clearCookie(`${user.id}`);
+    req.cookies[`${user.id}`] = "";
+
+    const token = jwt.sign({ id: user.id }, JWT_SECET_KEY, {
+      expiresIn: "35s",
+    });
+
+    console.log(`Regenrated  token here = \n ${token}`);
+
+    res.cookie(String(user._id), token, {
+      path: "/",
+      expires: new Date(Date.now() + 1000 * 30),
+      httpOnly: true,
+      sameSite: "lax",
+    });
+
+    req.id = user.id;
+    next();
+  });
+};
+
 exports.signup = signup;
 
 exports.login = login;
 
 exports.verifyToken = verifyToken;
 exports.getUser = getUser;
+exports.refreshToken = refreshToken;
